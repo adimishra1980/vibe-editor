@@ -4,9 +4,10 @@ import { signOut } from "next-auth/react";
 
 interface LogoutButtonProps {
   children: ReactNode;
+  className?: string;
 }
 
-const LogoutButton = ({ children }: LogoutButtonProps) => {
+const LogoutButton = ({ children, className }: LogoutButtonProps) => {
   const router = useRouter();
 
   const onLogout = async () => {
@@ -15,7 +16,7 @@ const LogoutButton = ({ children }: LogoutButtonProps) => {
   };
 
   return (
-    <span onClick={onLogout} className="cursor-pointer">
+    <span onClick={onLogout} className={className ?? "cursor-pointer"}>
       {children}
     </span>
   );
