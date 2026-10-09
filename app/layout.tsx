@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { auth } from "@/auth";
 import { SessionProvider } from "next-auth/react";
 import { ThemeProvider } from "@/components/providers/theme-provider";
+import { Toaster } from "@/components/ui/toast";
 
 // const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -35,6 +36,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
             enableSystem
             disableTransitionOnChange
           >
+            <Toaster />
             {children}
           </ThemeProvider>
         </body>
