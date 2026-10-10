@@ -4,8 +4,35 @@ import { Plus } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { createPlayground } from "../actions";
+import { toast } from "@/components/ui/toast";
+import TemplateSelectionModal from "./template-selection-modal";
 
 const AddNewButton = () => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<{
+    title: string;
+    template: "REACT" | "NEXTJS" | "EXPRESS" | "VUE" | "HONO" | "ANGULAR";
+    description?: string;
+  } | null>(null);
+  const router = useRouter();
+
+  const handleSubmit = async (data: {
+    title: string;
+    template: "REACT" | "NEXTJS" | "EXPRESS" | "VUE" | "HONO" | "ANGULAR";
+    description?: string;
+  }) => {
+    setSelectedTemplate(data);
+    const res = await createPlayground(data);
+    toast.add({
+      title: "Success",
+      description: "Playground created successfully",
+    });
+
+    setIsModalOpen(false);
+    router.push(`/playground/${res?.id}`);
+  };
+
   return (
     <>
       <div
@@ -14,6 +41,7 @@ const AddNewButton = () => {
         hover:bg-background hover:border-[#E93F3F] hover:scale-[1.02]
         shadow-[0_2px_10px_rgba(0,0,0,0.08)]
         hover:shadow-[0_10px_30px_rgba(233,63,63,0.15)]"
+        onClick={() => setIsModalOpen(true)}
       >
         <div className="flex flex-row justify-center items-start gap-4 px-6">
           <Button
@@ -44,6 +72,12 @@ const AddNewButton = () => {
           />
         </div>
       </div>
+
+      <TemplateSelectionModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSubmit={handleSubmit}
+      />
     </>
   );
 };
