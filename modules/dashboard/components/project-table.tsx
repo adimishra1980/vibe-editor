@@ -87,24 +87,19 @@ export default function ProjectTable({
   const [favoutrie, setFavourite] = useState(false);
 
   const handleDuplicateProject = (project: Project) => {
-    if(!onDuplicateProject) return;
+    if (!onDuplicateProject) return;
 
     setIsLoading(true);
 
     try {
-      
     } catch (error) {
-      
-    }
-    finally{
-      
+    } finally {
     }
   };
 
   const handleEditClick = (project: Project) => {};
 
   const handleDeleteClick = (project: Project) => {};
-
 
   const copyProjectUrl = (projectId: string) => {};
 

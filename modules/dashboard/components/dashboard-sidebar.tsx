@@ -30,11 +30,14 @@ import {
   Zap,
   Database,
   FlameIcon,
+  Atom,
+  Server,
+  Globe,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import React, { useState } from "react";
+import { useState } from "react";
 
 // Define the interface for a single playground item, icon is now a string
 interface PlaygroundData {
@@ -52,7 +55,10 @@ const lucideIconMap: Record<string, LucideIcon> = {
   Compass: Compass,
   FlameIcon: FlameIcon,
   Terminal: Terminal,
-  Code2: Code2, // Include the default icon
+  Code2: Code2,
+  Atom: Atom,
+  Server: Server,
+  Globe: Globe,
   // Add any other icons you might use dynamically
 };
 
