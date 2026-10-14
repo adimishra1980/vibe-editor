@@ -178,13 +178,13 @@ export const useFileExplorer = create<FileExplorerState>((set, get) => ({
       // Use the passed saveTemplateData function
       await saveTemplateData(updatedTemplateData);
 
-      //   // Sync with web container
-      //   if (writeFileSync) {
-      //     const filePath = parentPath
-      //       ? `${parentPath}/${newFile.filename}.${newFile.fileExtension}`
-      //       : `${newFile.filename}.${newFile.fileExtension}`;
-      //     await writeFileSync(filePath, newFile.content || "");
-      //   }
+      // Sync with web container
+      if (writeFileSync) {
+        const filePath = parentPath
+          ? `${parentPath}/${newFile.filename}.${newFile.fileExtension}`
+          : `${newFile.filename}.${newFile.fileExtension}`;
+        await writeFileSync(filePath, newFile.content || "");
+      }
 
       get().openFile(newFile);
     } catch (error) {

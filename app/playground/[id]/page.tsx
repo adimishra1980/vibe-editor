@@ -17,6 +17,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "@/components/ui/toast";
 import {
   Tooltip,
   TooltipContent,
@@ -27,15 +28,17 @@ import PlaygroundEditor from "@/modules/playground/components/playground-editor"
 import TemplateFileTree from "@/modules/playground/components/template-file-tree";
 import { useFileExplorer } from "@/modules/playground/hooks/use-file-explorer";
 import { usePlayground } from "@/modules/playground/hooks/use-playground";
+import { findFilePath } from "@/modules/playground/lib";
 import {
   TemplateFile,
   TemplateItem,
 } from "@/modules/playground/lib/path-to-json";
+import { TemplateFolder } from "@/modules/playground/types";
 import WebContainerPreview from "@/modules/webContainers/components/webcontainer-preview";
 import { useWebContainer } from "@/modules/webContainers/hooks/useWebContainer";
 import { AlertCircle, Bot, FileText, Save, Settings, X } from "lucide-react";
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 const PlaygroundPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -85,12 +88,202 @@ const PlaygroundPage = () => {
     }
   }, [templateData, setTemplateData, openFiles.length]);
 
+  // Create wrapper functions that pass saveTemplateData
+  const wrappedHandleAddFile = useCallback(
+    (newFile: TemplateFile, parentPath: string) => {
+      return handleAddFile(
+        newFile,
+        parentPath,
+        writeFileSync!,
+        instance,
+        saveTemplateData,
+      );
+    },
+    [handleAddFile, writeFileSync, instance, saveTemplateData],
+  );
+
+  const wrappedHandleAddFolder = useCallback(
+    (newFolder: TemplateFolder, parentPath: string) => {
+      return handleAddFolder(newFolder, parentPath, instance, saveTemplateData);
+    },
+    [handleAddFolder, instance, saveTemplateData],
+  );
+
+  const wrappedHandleDeleteFile = useCallback(
+    (file: TemplateFile, parentPath: string) => {
+      return handleDeleteFile(file, parentPath, saveTemplateData);
+    },
+    [handleDeleteFile, saveTemplateData],
+  );
+
+  const wrappedHandleDeleteFolder = useCallback(
+    (folder: TemplateFolder, parentPath: string) => {
+      return handleDeleteFolder(folder, parentPath, saveTemplateData);
+    },
+    [handleDeleteFolder, saveTemplateData],
+  );
+
+  const wrappedHandleRenameFile = useCallback(
+    (
+      file: TemplateFile,
+      newFilename: string,
+      newExtension: string,
+      parentPath: string,
+    ) => {
+      return handleRenameFile(
+        file,
+        newFilename,
+        newExtension,
+        parentPath,
+        saveTemplateData,
+      );
+    },
+    [handleRenameFile, saveTemplateData],
+  );
+
+  const wrappedHandleRenameFolder = useCallback(
+    (folder: TemplateFolder, newFolderName: string, parentPath: string) => {
+      return handleRenameFolder(
+        folder,
+        newFolderName,
+        parentPath,
+        saveTemplateData,
+      );
+    },
+    [handleRenameFolder, saveTemplateData],
+  );
+
   const activeFile = openFiles.find((file) => file.id === activeFileId);
   const hasUnsavedChanges = openFiles.some((file) => file.hasUnsavedChanges);
 
   const handleFileSelect = (file: TemplateFile) => {
     openFile(file);
   };
+
+  const handleSave = useCallback(
+    async (fileId?: string) => {
+      const state = useFileExplorer.getState();
+      const targetFileId = fileId || state.activeFileId;
+      if (!targetFileId) return;
+
+      const fileToSave = state.openFiles.find((f) => f.id === targetFileId);
+      if (!fileToSave) return;
+
+      const latestTemplateData = state.templateData;
+      if (!latestTemplateData) return;
+
+      try {
+        const filePath = findFilePath(fileToSave, latestTemplateData);
+        if (!filePath) {
+          toast.add({
+            type: "error",
+            title: `Could not find path for file: ${fileToSave.filename}.${fileToSave.fileExtension}`,
+          });
+          return;
+        }
+
+        // Update file content in template data (clone for immutability)
+        const updatedTemplateData = JSON.parse(
+          JSON.stringify(latestTemplateData),
+        );
+        const updateContentInItems = (items: TemplateItem[]): TemplateItem[] =>
+          items.map((item) => {
+            if ("folderName" in item) {
+              return { ...item, items: updateContentInItems(item.items) };
+            } else if (
+              item.filename === fileToSave.filename &&
+              item.fileExtension === fileToSave.fileExtension
+            ) {
+              return { ...item, content: fileToSave.content };
+            }
+            return item;
+          });
+        updatedTemplateData.items = updateContentInItems(
+          updatedTemplateData.items,
+        );
+
+        // Sync with WebContainer
+        if (writeFileSync) {
+          try {
+            await writeFileSync(filePath, fileToSave.content);
+          } catch (wcError) {
+            console.warn("Could not sync with WebContainer:", wcError);
+          }
+        }
+
+        // Use saveTemplateData to persist changes
+        const newTemplateData = await saveTemplateData(updatedTemplateData);
+        setTemplateData(newTemplateData || updatedTemplateData);
+
+        // Update open files
+        const currentOpenFiles = useFileExplorer.getState().openFiles;
+        const updatedOpenFiles = currentOpenFiles.map((f) =>
+          f.id === targetFileId
+            ? {
+                ...f,
+                content: fileToSave.content,
+                originalContent: fileToSave.content,
+                hasUnsavedChanges: false,
+              }
+            : f,
+        );
+        setOpenFiles(updatedOpenFiles);
+
+        toast.add({
+          type: "success",
+          title: `Saved ${fileToSave.filename}.${fileToSave.fileExtension}`,
+        });
+      } catch (error) {
+        console.error("Error saving file:", error);
+        toast.add({
+          type: "error",
+          title: `Failed to save ${fileToSave.filename}.${fileToSave.fileExtension}`,
+        });
+        throw error;
+      }
+    },
+    [writeFileSync, saveTemplateData, setTemplateData, setOpenFiles],
+  );
+
+  const handleSaveAll = useCallback(async () => {
+    const { openFiles } = useFileExplorer.getState();
+    const unsavedFiles = openFiles.filter((f) => f.hasUnsavedChanges);
+
+    if (unsavedFiles.length === 0) {
+      toast.add({ type: "info", title: "No unsaved changes" });
+      return;
+    }
+
+    try {
+      await Promise.all(unsavedFiles.map((file) => handleSave(file.id)));
+      toast.add({
+        type: "success",
+        title: `Saved ${unsavedFiles.length} file(s)`,
+      });
+    } catch {
+      toast.add({
+        type: "error",
+        title: "Failed to save some files",
+      });
+    }
+  }, [handleSave]);
+
+  // Add event to save file by clicking ctrl + s or cmd + s
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.shiftKey) {
+          handleSaveAll();
+        } else {
+          handleSave();
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown, true);
+    return () => window.removeEventListener("keydown", handleKeyDown, true);
+  }, [handleSave, handleSaveAll]);
 
   // Error state
   if (error) {
@@ -142,6 +335,13 @@ const PlaygroundPage = () => {
           data={templateData!}
           onFileSelect={handleFileSelect}
           selectedFile={activeFile}
+          title="File Explorer"
+          onAddFile={wrappedHandleAddFile}
+          onAddFolder={wrappedHandleAddFolder}
+          onDeleteFile={wrappedHandleDeleteFile}
+          onDeleteFolder={wrappedHandleDeleteFolder}
+          onRenameFile={wrappedHandleRenameFile}
+          onRenameFolder={wrappedHandleRenameFolder}
         />
 
         {/* and this is the content */}
@@ -168,7 +368,7 @@ const PlaygroundPage = () => {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => {}}
+                        onClick={() => handleSave()}
                         disabled={!activeFile || !activeFile.hasUnsavedChanges}
                         className="cursor-pointer"
                       >
@@ -185,7 +385,7 @@ const PlaygroundPage = () => {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => {}}
+                        onClick={handleSaveAll}
                         disabled={!hasUnsavedChanges}
                         className="cursor-pointer"
                       >
@@ -293,7 +493,7 @@ const PlaygroundPage = () => {
                 {/* Editor and Preview */}
                 <div className="flex-1">
                   <ResizablePanelGroup
-                    direction="horizontal"
+                    // direction="horizontal"
                     className="h-full"
                   >
                     <ResizablePanel defaultSize={isPreviewVisible ? 50 : 100}>
