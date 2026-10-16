@@ -74,7 +74,7 @@ const PlaygroundPage = () => {
     error: containerError,
     instance,
     writeFileSync,
-  } = useWebContainer({ templateData });
+  } = useWebContainer({ templateData: templateData! });
 
   // Set template data when playground loads
   useEffect(() => {
@@ -348,7 +348,7 @@ const PlaygroundPage = () => {
         <SidebarInset>
           <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
             <SidebarTrigger className="-ml-1" />
-            <Separator orientation="vertical" className="mr-2 h-4" />
+            <Separator orientation="vertical" className="mr-2 h-full" />
 
             <div className="flex flex-1 items-center gap-2">
               <div className="flex flex-col flex-1">
@@ -362,6 +362,7 @@ const PlaygroundPage = () => {
               </div>
 
               <div className="flex items-center gap-1">
+                {/* save file */}
                 <Tooltip>
                   <TooltipTrigger
                     render={
@@ -379,6 +380,7 @@ const PlaygroundPage = () => {
                   <TooltipContent>Save (Ctrl+S)</TooltipContent>
                 </Tooltip>
 
+                {/* save all files */}
                 <Tooltip>
                   <TooltipTrigger
                     render={

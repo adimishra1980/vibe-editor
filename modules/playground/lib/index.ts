@@ -1,5 +1,12 @@
 import { TemplateFile, TemplateFolder } from "./path-to-json";
 
+/**
+ * Finds the file path in the folder structure
+ * @param file The template file to find
+ * @param folder The root folder to search in
+ * @param pathSoFar The path accumulated so far
+ * @returns The file path or null if not found
+ */
 export function findFilePath(
   file: TemplateFile,
   folder: TemplateFolder,
@@ -24,7 +31,8 @@ export function findFilePath(
   return null;
 }
 
-// Helper function to generate unique file ID
+// this is necessary because we can have same filenames in different folders
+// and we need a way to uniquely identify each file
 /**
  * Generates a unique file ID based on file location in folder structure
  * @param file The template file
@@ -35,15 +43,5 @@ export const generateFileId = (
   file: TemplateFile,
   rootFolder: TemplateFolder,
 ): string => {
-  // Find the file's path in the folder structure
-  const path = findFilePath(file, rootFolder)?.replace(/^\/+/, "") || "";
-
-  // Handle empty/undefined file extension
-  const extension = file.fileExtension?.trim();
-  const extensionSuffix = extension ? `.${extension}` : "";
-
-  // Combine path and filename
-  return path
-    ? `${path}/${file.filename}${extensionSuffix}`
-    : `${file.filename}${extensionSuffix}`;
+  return findFilePath(file, rootFolder) ?? "";
 };

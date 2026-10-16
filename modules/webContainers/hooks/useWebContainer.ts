@@ -44,7 +44,9 @@ export const useWebContainer = ({
   const [serverUrl, setServerUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(!webcontainerInstance);
   const [error, setError] = useState<string | null>(null);
-  const [instance, setInstance] = useState<WebContainer | null>(webcontainerInstance);
+  const [instance, setInstance] = useState<WebContainer | null>(
+    webcontainerInstance,
+  );
 
   useEffect(() => {
     let mounted = true;

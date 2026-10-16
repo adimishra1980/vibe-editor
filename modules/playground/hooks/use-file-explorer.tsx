@@ -61,10 +61,11 @@ interface FileExplorerState {
 interface OpenFile extends TemplateFile {
   id: string;
   hasUnsavedChanges: boolean;
-  content: string;
-  originalContent: string;
+  content: string; // and this is the content which is currently present in the editor for this file, for the first time when the file is opened this is same as originalContent
+  originalContent: string; // this is the content which is already present in the template at the moment when file is opened, this will be used when we save the file
 }
 
+// creating a store using zustand to share state
 export const useFileExplorer = create<FileExplorerState>((set, get) => ({
   templateData: null,
   playgroundId: "",
@@ -170,13 +171,13 @@ export const useFileExplorer = create<FileExplorerState>((set, get) => ({
       currentFolder.items.push(newFile);
       set({ templateData: updatedTemplateData });
 
+      // Use the passed saveTemplateData function
+      await saveTemplateData(updatedTemplateData);
+
       toast.add({
         type: "success",
         title: "File created",
       });
-
-      // Use the passed saveTemplateData function
-      await saveTemplateData(updatedTemplateData);
 
       // Sync with web container
       if (writeFileSync) {
