@@ -24,8 +24,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useAISuggestion } from "@/modules/ai/hooks/use-ai-suggestion";
 import PlaygroundEditor from "@/modules/playground/components/playground-editor";
 import TemplateFileTree from "@/modules/playground/components/template-file-tree";
+import ToggleAI from "@/modules/playground/components/toggle-ai";
 import { useFileExplorer } from "@/modules/playground/hooks/use-file-explorer";
 import { usePlayground } from "@/modules/playground/hooks/use-playground";
 import { findFilePath } from "@/modules/playground/lib";
@@ -36,7 +38,7 @@ import {
 import { TemplateFolder } from "@/modules/playground/types";
 import WebContainerPreview from "@/modules/webContainers/components/webcontainer-preview";
 import { useWebContainer } from "@/modules/webContainers/hooks/useWebContainer";
-import { AlertCircle, Bot, FileText, Save, Settings, X } from "lucide-react";
+import { AlertCircle, FileText, Save, Settings, X } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
@@ -48,6 +50,9 @@ const PlaygroundPage = () => {
   // Custom hooks
   const { playgroundData, templateData, isLoading, error, saveTemplateData } =
     usePlayground(id);
+
+  const aiSuggestions = useAISuggestion();
+
   const {
     activeFileId,
     closeAllFiles,
@@ -398,22 +403,11 @@ const PlaygroundPage = () => {
                   <TooltipContent>Save All (Ctrl+Shift+S)</TooltipContent>
                 </Tooltip>
 
-                {/* TODO: ai features */}
-                <Tooltip>
-                  <TooltipTrigger
-                    render={
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {}}
-                        className="cursor-pointer"
-                      >
-                        <Bot className="h-4 w-4" />
-                      </Button>
-                    }
-                  ></TooltipTrigger>
-                  <TooltipContent>Toggle Ai</TooltipContent>
-                </Tooltip>
+                <ToggleAI
+                  isEnabled={aiSuggestions.isEnabled}
+                  onToggle={aiSuggestions.toggleEnabled}
+                  suggestionLoading={aiSuggestions.isLoading}
+                />
 
                 <DropdownMenu>
                   <DropdownMenuTrigger
@@ -504,6 +498,18 @@ const PlaygroundPage = () => {
                         content={activeFile?.content || ""}
                         onContentChange={(value) =>
                           activeFileId && updateFileContent(activeFileId, value)
+                        }
+                        suggestion={aiSuggestions.suggestion}
+                        suggestionLoading={aiSuggestions.isLoading}
+                        suggestionPosition={aiSuggestions.position}
+                        onAcceptSuggestion={(editor, monaco) =>
+                          aiSuggestions.acceptSuggestion(editor, monaco)
+                        }
+                        onRejectSuggestion={(editor) =>
+                          aiSuggestions.rejectSuggestion(editor)
+                        }
+                        onTriggerSuggestion={(type, editor) =>
+                          aiSuggestions.fetchSuggestion(type, editor)
                         }
                       />
                     </ResizablePanel>
