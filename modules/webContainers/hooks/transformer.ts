@@ -1,10 +1,7 @@
-interface TemplateItem {
-  filename: string;
-  fileExtension: string;
-  content: string;
-  folderName?: string;
-  items?: TemplateItem[];
-}
+import type {
+  TemplateFolder,
+  TemplateItem,
+} from "@/modules/playground/lib/path-to-json";
 
 interface WebContainerFile {
   file: {
@@ -23,21 +20,21 @@ type WebContainerFileSystem = Record<
   WebContainerFile | WebContainerDirectory
 >;
 
-export function transformToWebContainerFormat(template: {
-  folderName: string;
-  items: TemplateItem[];
-}): WebContainerFileSystem {
+export function transformToWebContainerFormat(
+  template: TemplateFolder,
+): WebContainerFileSystem {
   function processItem(
     item: TemplateItem,
   ): WebContainerFile | WebContainerDirectory {
-    if (item.folderName && item.items) {
+    if ("folderName" in item && "items" in item) {
       // This is a directory
       const directoryContents: WebContainerFileSystem = {};
 
       item.items.forEach((subItem) => {
-        const key = subItem.fileExtension
-          ? `${subItem.filename}.${subItem.fileExtension}`
-          : subItem.folderName!;
+        const key =
+          "fileExtension" in subItem
+            ? `${subItem.filename}.${subItem.fileExtension}`
+            : subItem.folderName;
         directoryContents[key] = processItem(subItem);
       });
 
@@ -57,9 +54,10 @@ export function transformToWebContainerFormat(template: {
   const result: WebContainerFileSystem = {};
 
   template.items.forEach((item) => {
-    const key = item.fileExtension
-      ? `${item.filename}.${item.fileExtension}`
-      : item.folderName!;
+    const key =
+      "fileExtension" in item
+        ? `${item.filename}.${item.fileExtension}`
+        : item.folderName;
     result[key] = processItem(item);
   });
 

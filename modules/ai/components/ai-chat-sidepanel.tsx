@@ -1170,22 +1170,28 @@ export const AIChatSidePanel = ({
                             code: ({
                               children,
                               className,
-                              inline: _inline,
-                            }) => (
-                              <EnhancedCodeBlock
-                                className={className}
-                                inline={_inline as boolean}
-                                onInsert={
-                                  onInsertCode
-                                    ? (code) => handleInsertCode(code)
-                                    : undefined
-                                }
-                                onRun={onRunCode}
-                                theme={theme}
-                              >
-                                {String(children)}
-                              </EnhancedCodeBlock>
-                            ),
+                            }: {
+                              children?: React.ReactNode;
+                              className?: string;
+                            }) => {
+                              const match = /language-(\w+)/.exec(className || "");
+                              const isInline = !match && !String(children).includes("\n");
+                              return (
+                                <EnhancedCodeBlock
+                                  className={className}
+                                  inline={isInline}
+                                  onInsert={
+                                    onInsertCode
+                                      ? (code) => handleInsertCode(code)
+                                      : undefined
+                                  }
+                                  onRun={onRunCode}
+                                  theme={theme}
+                                >
+                                  {String(children)}
+                                </EnhancedCodeBlock>
+                              );
+                            },
                           }}
                         >
                           {msg.content}

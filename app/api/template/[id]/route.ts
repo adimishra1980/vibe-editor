@@ -60,7 +60,10 @@ export async function GET(
   }
 
   try {
-    const inputPath = path.join(process.cwd(), templatePath);
+    const inputPath = path.join(
+      /*turbopackIgnore: true*/ process.cwd(),
+      templatePath,
+    );
     const outputPath = path.join(process.cwd(), `output/${templateKey}.json`);
 
     await saveTemplateStructureToJson(inputPath, outputPath);

@@ -58,7 +58,6 @@ const PlaygroundPage = () => {
     closeAllFiles,
     openFile,
     closeFile,
-    editorContent, // TODO: is this used anywhere?(can we remove this)
     updateFileContent,
     handleAddFile,
     handleAddFolder,
@@ -218,8 +217,8 @@ const PlaygroundPage = () => {
         }
 
         // Use saveTemplateData to persist changes
-        const newTemplateData = await saveTemplateData(updatedTemplateData);
-        setTemplateData(newTemplateData || updatedTemplateData);
+        await saveTemplateData(updatedTemplateData);
+        setTemplateData(updatedTemplateData);
 
         // Update open files
         const currentOpenFiles = useFileExplorer.getState().openFiles;
