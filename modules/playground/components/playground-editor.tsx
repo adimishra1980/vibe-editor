@@ -476,7 +476,7 @@ export const PlaygroundEditor = ({
       }
 
       // Trigger new suggestion if appropriate (simplified)
-      if (!currentSuggestionRef.current && !suggestionLoading) {
+      if (!currentSuggestionRef.current && !suggestionLoading && !suggestionAcceptedRef.current) {
         // Clear any existing timeout
         if (suggestionTimeoutRef.current) {
           clearTimeout(suggestionTimeoutRef.current);
@@ -485,7 +485,7 @@ export const PlaygroundEditor = ({
         // Trigger suggestion with a delay
         suggestionTimeoutRef.current = setTimeout(() => {
           onTriggerSuggestion("completion", editor);
-        }, 300);
+        }, 500);
       }
     });
 

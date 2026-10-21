@@ -102,28 +102,13 @@ export function useAISuggestion(): UseAISuggestionsReturn {
     });
   }, []);
 
-  const acceptSuggestion = useCallback((editor: any, monaco: any) => {
+  const acceptSuggestion = useCallback((editor: any, _monaco: any) => {
     setState((currState) => {
-      if (!currState.suggestion || !currState.position || !editor || !monaco) {
-        return currState;
-      }
+      // Only clear state here — the editor component already handles
+      // inserting the text via executeEdits in acceptCurrentSuggestion().
+      // Calling executeEdits here too would cause double insertion.
 
-      const { line, column } = currState.position;
-
-      const sanitizedSuggestion = currState.suggestion.replace(
-        /^\d+:\s*/gm,
-        "",
-      );
-
-      editor.executeEdits("", [
-        {
-          range: new monaco.Range(line, column, line, column),
-          text: sanitizedSuggestion,
-          forceMoveMarkers: true,
-        },
-      ]);
-
-      // Clear decorations
+      // Clear decorations if any
       if (editor && currState.decoration.length > 0) {
         editor.deltaDecorations(currState.decoration, []);
       }

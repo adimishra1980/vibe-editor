@@ -58,7 +58,7 @@ const PlaygroundPage = () => {
     closeAllFiles,
     openFile,
     closeFile,
-    editorContent,
+    editorContent, // TODO: is this used anywhere?(can we remove this)
     updateFileContent,
     handleAddFile,
     handleAddFolder,
@@ -188,6 +188,7 @@ const PlaygroundPage = () => {
         }
 
         // Update file content in template data (clone for immutability)
+        // TODO : Important observation: the recursive update matches files by filename and fileExtension, not by their full path or ID. If two folders contain different files with the same name and extension, this code can update both of them. That is a potential correctness issue to investigate.
         const updatedTemplateData = JSON.parse(
           JSON.stringify(latestTemplateData),
         );
@@ -250,6 +251,7 @@ const PlaygroundPage = () => {
     [writeFileSync, saveTemplateData, setTemplateData, setOpenFiles],
   );
 
+  // TODO: it can be made better
   const handleSaveAll = useCallback(async () => {
     const { openFiles } = useFileExplorer.getState();
     const unsavedFiles = openFiles.filter((f) => f.hasUnsavedChanges);
@@ -335,7 +337,7 @@ const PlaygroundPage = () => {
   return (
     <TooltipProvider>
       <>
-        {/* this is the coding sidebar you see in you ide with all the code files */}
+        {/* this is the coding sidebar you see in your IDE with all the code files */}
         <TemplateFileTree
           data={templateData!}
           onFileSelect={handleFileSelect}
@@ -416,7 +418,7 @@ const PlaygroundPage = () => {
                         <Settings className="h-4 w-4" />
                       </Button>
                     }
-                  ></DropdownMenuTrigger>
+                  />
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem
                       onClick={() => setIsPreviewVisible(!isPreviewVisible)}

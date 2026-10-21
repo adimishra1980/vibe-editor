@@ -116,30 +116,31 @@ function analyzeCodeContext(
 /**
  * Build AI prompt based on context
  */
-function buildPrompt(context: CodeContext, suggestionType: string): string {
-  return `You are an expert code completion assistant. Generate a ${suggestionType} suggestion.
+function buildPrompt(context: CodeContext, _suggestionType: string): string {
+  const prefix = context.currentLine.substring(
+    0,
+    context.cursorPosition.column,
+  );
+  const suffix = context.currentLine.substring(context.cursorPosition.column);
 
-    Language: ${context.language}
-    Framework: ${context.framework}
+  return `You are a code completion engine for ${context.language}${context.framework !== "None" ? ` (${context.framework})` : ""}.
 
-    Context:
+    Context before cursor:
     ${context.beforeContext}
-    ${context.currentLine.substring(0, context.cursorPosition.column)}|CURSOR|${context.currentLine.substring(context.cursorPosition.column)}
+
+    Current line so far: "${prefix}"
+    Rest of current line: "${suffix}"
+
+    Context after cursor:
     ${context.afterContext}
 
-    Analysis:
-    - In Function: ${context.isInFunction}
-    - In Class: ${context.isInClass}
-    - After Comment: ${context.isAfterComment}
-    - Incomplete Patterns: ${context.incompletePatterns.join(", ") || "None"}
-
-    Instructions:
-    1. Provide only the code that should be inserted at the cursor
-    2. Maintain proper indentation and style
-    3. Follow ${context.language} best practices
-    4. Make the suggestion contextually appropriate
-
-    Generate suggestion:`;
+    TASK: Output ONLY the exact code to insert immediately after the current line prefix.
+    RULES:
+    1. Do NOT repeat or include the prefix text "${prefix}".
+    2. Do NOT wrap output in markdown, backticks, or code fences.
+    3. Complete only the current statement or expression — keep it brief.
+    4. No explanations, comments about the suggestion, or extra text.
+    5. Output raw code only.`;
 }
 
 /**
@@ -157,8 +158,8 @@ async function generateSuggestion(prompt: string): Promise<string> {
         prompt,
         stream: false,
         options: {
-          temperature: 0.7,
-          max_tokens: 300,
+          temperature: 0.1,
+          max_tokens: 80,
         },
       }),
     });
@@ -170,19 +171,44 @@ async function generateSuggestion(prompt: string): Promise<string> {
     const data = await response.json();
     let suggestion = data.response;
 
-    // Clean up the suggestion
+    // Clean up the suggestion — strip markdown code fences
     if (suggestion.includes("```")) {
       const codeMatch = suggestion.match(/```[\w]*\n?([\s\S]*?)```/);
       suggestion = codeMatch ? codeMatch[1].trim() : suggestion;
     }
 
     // Remove cursor markers if present
-    suggestion = suggestion.replace(/\|CURSOR\|/g, "").trim();
+    suggestion = suggestion.replace(/\|CURSOR\|/g, "");
+
+    // Remove numbered line prefixes (e.g. "1: ", "23: ")
+    suggestion = suggestion.replace(/^\d+:\s*/gm, "");
+
+    // Strip any leading/trailing explanation text (keep only code-like lines)
+    const lines = suggestion.split("\n");
+    const codeLines = lines.filter(
+      (line: string) =>
+        !line.startsWith("Here") &&
+        !line.startsWith("This") &&
+        !line.startsWith("The ") &&
+        !line.startsWith("Note") &&
+        !line.startsWith("I ") &&
+        !line.startsWith("Sure"),
+    );
+    suggestion = codeLines.join("\n").trim();
+
+    // If the result is empty or just a comment about unavailability, return empty
+    if (
+      !suggestion ||
+      suggestion === "// AI suggestion unavailable" ||
+      suggestion.length < 2
+    ) {
+      return "";
+    }
 
     return suggestion;
   } catch (error) {
     console.error("AI generation error:", error);
-    return "// AI suggestion unavailable";
+    return "";
   }
 }
 
